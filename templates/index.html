@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Index Checker</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .text-center {
+            text-align: center;
+        }
+        .indexed-true {
+            color: #155724;
+        }
+        .indexed-false {
+            color: #dc3545;
+        }
+        .server-code-green {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .server-code-orange {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .server-code-red {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .url-link {
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Google Index Checker</h1>
+
+        <form method="POST" action="/">
+            <div class="form-group">
+                <label for="urls">Enter URLs:</label>
+                <textarea class="form-control" id="urls" name="urls" rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Check Index</button>
+                    <!-- Dodajemy przycisk "Clear Database" -->
+        <button id="clear-database-btn" class="btn btn-danger float-right">Clear Database</button>
+        </form>
+
+        <h2 class="my-4">Results:</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="text-center">ID</th>
+                    <th>URL</th>
+                    <th class="text-center">Indexed</th>
+                    <th class="text-center">Server Code</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site in sites %}
+                <tr>
+                    <td class="text-center">{{ site.id }}</td>
+                    <td><a class="url-link" href="{{ site.url }}" target="_blank">{{ site.url }}</a></td>
+                    <td class="text-center {% if site.indexed %}indexed-true{% else %}indexed-false{% endif %}">
+                        {% if site.indexed %}
+                        True
+                        {% else %}
+                        False
+                        {% endif %}
+                    </td>
+                    <td class="text-center server-code {% if site.server_code >= 300 and site.server_code < 400 %}server-code-orange{% elif site.server_code >= 400 or site.server_code == None %}server-code-red{% else %}server-code-green{% endif %}">
+                        {% if site.server_code %}
+                        {{ site.server_code }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not site.indexed %}
+                        <form method="POST" action="/rescan/{{ site.id }}">
+                            <button type="submit" class="btn btn-secondary">Rescan</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+
+
+        <!-- Modal potwierdzający usunięcie bazy-->
+        <div class="modal" id="confirm-modal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Clear Database</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to clear the database?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button id="confirm-clear-btn" type="button" class="btn btn-danger">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Obsługa kliknięcia przycisku "Clear Database"
+            $("#clear-database-btn").click(function() {
+                $("#confirm-modal").modal("show");
+            });
+
+            // Obsługa kliknięcia przycisku "Clear" w modalu potwierdzającym
+            $("#confirm-clear-btn").click(function() {
+                $("#confirm-modal").modal("hide");
+
+                // Wywołanie endpointu /clear-database w backendzie
+                $.ajax({
+                    url: "/clear-database",
+                    type: "POST",
+                    success: function(response) {
+                        // Odświeżenie strony po wyczyszczeniu bazy danych
+                        location.reload();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
